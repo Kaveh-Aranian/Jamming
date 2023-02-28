@@ -3,24 +3,53 @@ import "./App.css";
 import { SearchBar } from "../SearchBar/SearchBar";
 import { SearchResults } from "../SearchResults/SearchResults";
 import { Playlist } from "../Playlist/Playlist";
-import { TrackList } from "../TrackList/TrackList";
+import Spotify from "../../util/Spotify";
 
 export class App extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      searchResults: [{ name: "", artist: "", album: "", id: "" }],
+      searchResults: [],
       playlistName: "Gloomy",
-      playlistTracks: [{ name: "", artist: "", album: "", id: "" }],
+      playlistTracks: [],
     };
     this.addTrack = this.addTrack.bind(this);
+    this.removeTrack = this.removeTrack.bind(this);
+    this.updatePlaylistName = this.updatePlaylistName.bind(this);
+    this.savePlaylist = this.savePlaylist.bind(this);
+    this.search = this.search.bind(this);
   }
 
   addTrack(track) {
-    if (!this.state.playlistTracks.includes(track.id)) {
-      this.state.playlistTracks.push(track);
+    let tracks = this.state.playlistTracks;
+    if (tracks.find((savedTrack) => savedTrack.id === track.id)) {
+      return;
     }
-    return this.state.playlistTracks;
+    tracks.push(track);
+    this.setState({ playlistTracks: tracks });
+  }
+
+  removeTrack(track) {
+    let tracks = this.state.playlistTracks;
+    tracks = tracks.filter((item) => item.id !== track.id);
+    this.setState({ playlistTracks: tracks });
+  }
+
+  updatePlaylistName(name) {
+    this.setState({ playlistName: name });
+  }
+
+  savePlaylist() {
+    const trackUris = this.state.playlistTracks.map((track) => track.uri);
+    Spotify.savePlaylist(this.state.playlistName, trackUris).then(() => {
+      this.setState({ playlistName: "New Playlist", playlistTracks: [] });
+    });
+  }
+
+  search(term) {
+    Spotify.search(term).then((searchResults) => {
+      this.setState({ searchResults: searchResults });
+    });
   }
 
   render() {
@@ -30,13 +59,19 @@ export class App extends React.Component {
           Ja<span className="highlight">mmm</span>ing
         </h1>
         <div className="App">
-          {/* <!-- Add a SearchBar component --> */}
-          <SearchBar />
-          <div class="App-playlist">
-            {/* <!-- Add a SearchResults component --> */}
-            <SearchResults />
-            {/* <!-- Add a Playlist component --> */}
-            <Playlist />
+          <SearchBar onSearch={this.search} />
+          <div className="App-playlist">
+            {/* <SearchResults
+              searchResults={this.state.searchResults}
+              onAdd={this.addTrack}
+            /> */}
+            <Playlist
+              playlistName={this.state.playlistName}
+              playlistTracks={this.state.playlistTracks}
+              onRemove={this.removeTrack}
+              onNameChange={this.updatePlaylistName}
+              onSave={this.savePlaylist}
+            />
           </div>
         </div>
       </div>
